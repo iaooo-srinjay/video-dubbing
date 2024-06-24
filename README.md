@@ -25,20 +25,12 @@ Please download our [pre-trained models](https://drive.google.com/drive/folders/
 #### Inference
 
 ```
-python3 inference.py \
-  --face examples/face/1.mp4 \
-  --audio examples/audio/1.wav \
-  --outfile results/1_1.mp4
+python3 final_inference.py \
+  --face ./examples/face/5.mp4 \
+  --audio_save ./examples/saved.wav \
+  --audio_translate_save ./examples/translated_saved.wav \
+  --outfile ./results/subbed_translated.mp4
 ```
-This script includes data preprocessing steps. You can test any talking face videos without manual alignment. But it is worth noting that DNet cannot handle extreme poses.
-
-You can also control the expression by adding the following parameters:
-
-```--exp_img```: Pre-defined expression template. The default is "neutral". You can choose "smile" or an image path.
-
-```--up_face```: You can choose "surprise" or "angry" to modify the expression of upper face with [GANimation](https://github.com/donydchen/ganimation_replicate).
-
-
 
 ## Citation
 
