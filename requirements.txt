@@ -1,4 +1,7 @@
 basicsr==1.4.2
+torch==2.0.1+cu117
+torchvision==0.15.1+cu117
+fairseq2==0.2.0+cu117
 kornia==0.5.1
 face-alignment==1.3.4
 ninja==1.10.2.3
