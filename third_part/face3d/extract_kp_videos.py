@@ -18,15 +18,21 @@ class KeypointExtractor():
         self.detector = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, device=device)   
 
     def extract_keypoint(self, images, name=None, info=True):
+        # print("calling this function")
         if isinstance(images, list):
+            # print("once")
             keypoints = []
             if info:
-                i_range = tqdm(images,desc='landmark Det:')
+                i_range = tqdm(images,desc='landmark Det')
             else:
                 i_range = images
-
+            # print("$$$$$$$$$$$$",i_range)
+            # print(len(images))
             for image in i_range:
+                # import pdb
+                # pdb.set_trace()
                 current_kp = self.extract_keypoint(image)
+                # print("adsadsad",current_kp)
                 if np.mean(current_kp) == -1 and keypoints:
                     keypoints.append(keypoints[-1])
                 else:
@@ -38,7 +44,9 @@ class KeypointExtractor():
         else:
             while True:
                 try:
+                    # print("single image case")
                     keypoints = self.detector.get_landmarks_from_image(np.array(images))[0]
+                    # print("single successful")
                     break
                 except RuntimeError as e:
                     if str(e).startswith('CUDA'):

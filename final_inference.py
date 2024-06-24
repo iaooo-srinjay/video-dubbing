@@ -1,8 +1,12 @@
 import numpy as np
-import cv2, os, sys, subprocess, platform, torch
+import cv2, os, sys, subprocess, platform, torch , torchaudio
+from transformers import AutoProcessor, SeamlessM4Tv2Model
 from tqdm import tqdm
 from PIL import Image
 from scipy.io import loadmat
+import moviepy
+from moviepy.editor import VideoFileClip
+from seamless_communication.inference import Translator
 
 sys.path.insert(0, 'third_part')
 sys.path.insert(0, 'third_part/GPEN')
@@ -25,8 +29,10 @@ from utils.inference_utils import Laplacian_Pyramid_Blending_with_mask, face_det
                                   trans_image, transform_semantic, find_crop_norm_ratio, load_face3d_net, exp_aus_dict
 import warnings
 warnings.filterwarnings("ignore")
+print("ok")
 
 args = options()
+
 
 def main():
     print("imports ok")    
@@ -34,6 +40,41 @@ def main():
     # device = "cpu"
     print('[Info] Using {} for inference.'.format(device))
 
+
+    command = 'ffmpeg -i {} -vn -acodec pcm_s16le -ar 16000 -ac 1 {}'.format(args.face , args.audio_save)
+    # command = "ffmpeg -i {} -ab 160k -ac 2 -ar 44100 -vn {}".format(args.face , args.audio_save)
+    # command = "ffmpeg -i {} -ab 160k -ac 2 -ar 44100 -vn {}".format(args.face , args.audio_save)
+    # command = 'ffmpeg -loglevel error -y -i {} -i {} -strict -2 -q:v 1 {}'.format(args.audio, 'temp/{}/result.mp4'.format(args.tmp_dir), args.outfile)
+    subprocess.call(command, shell=platform.system() != 'Windows')
+
+    print("saved at:",args.audio_save)
+
+    translator = Translator("seamlessM4T_v2_large", "vocoder_v2", device=torch.device(device), dtype=torch.float16,)
+    assert translator is not None
+
+    text_output, speech_output = translator.predict( input = args.audio_save, task_str="S2ST",tgt_lang = "hin")
+
+    torchaudio.save(args.audio_translate_save,speech_output.audio_wavs[0][0].to(torch.float32).cpu(),sample_rate=speech_output.sample_rate)
+
+    print("Translated audio saved at :",args.audio_translate_save)
+
+
+    # processor = AutoProcessor.from_pretrained("facebook/seamless-m4t-v2-large")
+    # model = SeamlessM4Tv2Model.from_pretrained("facebook/seamless-m4t-v2-large")
+
+    # audio, orig_freq = torchaudio.load(args.audio)
+    # audio = torchaudio.functional.resample(audio, orig_freq=orig_freq, new_freq=16_000) # must be a 16 kHz waveform array
+    # audio_inputs = processor(audios=audio, return_tensors="pt")
+    # audio_array_from_audio = model.generate(**audio_inputs, tgt_lang="hin")[0].cpu().squeeze()
+
+    # # import pdb
+    # # pdb.set_trace()
+
+    # torchaudio.save( args.audio_translate_save, audio_array_from_audio,  sample_rate=model.config.sampling_rate)
+
+    # exit()
+
+    # 
 
     os.makedirs(os.path.join('temp', args.tmp_dir), exist_ok=True)
 
@@ -184,14 +225,24 @@ def main():
         imgs = np.load('temp/'+base_name+'_stablized.npy')
     torch.cuda.empty_cache()
 
-    if not args.audio.endswith('.wav'):
-        command = 'ffmpeg -loglevel error -y -i {} -strict -2 {}'.format(args.audio, 'temp/{}/temp.wav'.format(args.tmp_dir))
+    # if not args.audio_save.endswith('.wav'):
+    #     # command = 'ffmpeg -loglevel error -y -i {} -strict -2 {}'.format(args.audio, 'temp/{}/temp.wav'.format(args.tmp_dir))
+    #     subprocess.call(command, shell=True)
+    #     args.audio = 'temp/{}/temp.wav'.format(args.tmp_dir)
+    # wav = audio.load_wav(args.audio, 16000)
+    # mel = audio.melspectrogram(wav)
+    # if np.isnan(mel.reshape(-1)).sum() > 0:
+    #     raise ValueError('Mel contains nan! Using a TTS voice? Add a small epsilon noise to the wav file and try again')
+
+    if not args.audio_translate_save.endswith('.wav'):
+        # command = 'ffmpeg -loglevel error -y -i {} -strict -2 {}'.format(args.audio, 'temp/{}/temp.wav'.format(args.tmp_dir))
         subprocess.call(command, shell=True)
-        args.audio = 'temp/{}/temp.wav'.format(args.tmp_dir)
-    wav = audio.load_wav(args.audio, 16000)
+        args.audio_translate_save = 'temp/{}/temp.wav'.format(args.tmp_dir)
+    wav = audio.load_wav(args.audio_translate_save, 16000)
     mel = audio.melspectrogram(wav)
     if np.isnan(mel.reshape(-1)).sum() > 0:
         raise ValueError('Mel contains nan! Using a TTS voice? Add a small epsilon noise to the wav file and try again')
+    
 
     mel_step_size, mel_idx_multiplier, i, mel_chunks = 16, 80./fps, 0, []
     while True:
@@ -282,12 +333,10 @@ def main():
     
     if not os.path.isdir(os.path.dirname(args.outfile)):
         os.makedirs(os.path.dirname(args.outfile), exist_ok=True)
-    command = 'ffmpeg -loglevel error -y -i {} -i {} -strict -2 -q:v 1 {}'.format(args.audio, 'temp/{}/result.mp4'.format(args.tmp_dir), args.outfile)
+    command = 'ffmpeg -loglevel error -y -i {} -i {} -strict -2 -q:v 1 {}'.format(args.audio_translate_save, 'temp/{}/result.mp4'.format(args.tmp_dir), args.outfile)
     subprocess.call(command, shell=platform.system() != 'Windows')
     print('outfile:', args.outfile)
 
-
-# frames:256x256, full_frames: original size
 def datagen(frames, mels, full_frames, frames_pil, cox):
     img_batch, mel_batch, frame_batch, coords_batch, ref_batch, full_frame_batch = [], [], [], [], [], []
     base_name = args.face.split('/')[-1]
@@ -351,6 +400,7 @@ def datagen(frames, mels, full_frames, frames_pil, cox):
         img_batch = np.concatenate((img_masked, ref_batch), axis=3) / 255.
         mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
         yield img_batch, mel_batch, frame_batch, coords_batch, img_original, full_frame_batch
+
 
 
 if __name__ == '__main__':
