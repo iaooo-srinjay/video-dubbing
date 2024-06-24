@@ -32,6 +32,13 @@ python3 final_inference.py \
   --outfile ./results/subbed_translated.mp4
 ```
 
+### Limitations
+- Fails with multiple faces and multiple voices in the audio .
+- Translation model is unreliable, sometimes the translation is wrong and sometimes the translation does not occur .
+- Unable to handle pauses in long sentences .
+- Translation fails for videos > 15s .   
+
+
 ## Citation
 
 If you find our work useful in your research, please consider citing:
