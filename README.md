@@ -41,7 +41,7 @@ python3 final_inference.py \
 
 ## Citation
 
-If you find our work useful in your research, please consider citing:
+If you find this work useful in your research, please consider citing:
 
 ```
 @misc{cheng2022videoretalking,
