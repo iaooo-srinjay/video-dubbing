@@ -1,7 +1,7 @@
 
 ## Environment
 ```
-git clone https://github.com/vinthony/video-retalking.git](https://github.com/iaooo-srinjay/video-dubbing.git
+git clone https://github.com/iaooo-srinjay/video-dubbing.git
 cd video-retalking
 conda create -n video_retalking python=3.8
 conda activate video_retalking
