@@ -10,7 +10,7 @@ conda install ffmpeg
 
 # Please follow the instructions from https://pytorch.org/get-started/previous-versions/
 # This installation command only works on CUDA 11.1
-pip install torch==1.9.0+cu111 torchvision==0.10.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch==2.0.1+cu117 torchvision==0.15.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 
 pip install -r requirements.txt
 ```
